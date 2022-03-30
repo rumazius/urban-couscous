@@ -9,26 +9,28 @@ class Set {
 private:
     struct RBTree {
         struct Node {
-            Node* left;
-            Node* right;
-            Node* parent;
+            Node* left = nullptr;
+            Node* right = nullptr;
+            Node* parent = nullptr;
             ValueType key;
-            bool red;
+            bool red = false;
 
-            Node() : left(nullptr), right(nullptr), parent(nullptr), key(0), red(false) {
+            Node() = default;
+
+            explicit Node(ValueType key) : key(key) {
             }
-            explicit Node(ValueType key) : left(nullptr), right(nullptr), parent(nullptr), key(key), red(false) {
+
+            explicit Node(Node* parent) : parent(parent) {
             }
-            explicit Node(Node* parent) : left(nullptr), right(nullptr), parent(parent), key(0), red(false) {
-            }
-            Node(Node* parent, ValueType key) : left(nullptr), right(nullptr), parent(parent), key(key), red(false) {
+
+            Node(Node* parent, ValueType key) : parent(parent), key(key) {
             }
         };
 
         size_t size_ = 0;
-        Node* root = nullptr;
-        Node* end_iter = nullptr;
-        Node* begin_iter = nullptr;
+        Node* root_ = nullptr;
+        Node* end_iterator_ = nullptr;
+        Node* begin_iterator_ = nullptr;
 
         RBTree() = default;
 
@@ -48,11 +50,11 @@ private:
                 if (v->left == nullptr) {
                     return v;
                 } else {
-                    Node* nxt = lower_bound(v->left, key);
-                    if (nxt == nullptr || v->key < nxt->key) {
+                    Node* next = lower_bound(v->left, key);
+                    if (next == nullptr || v->key < next->key) {
                         return v;
                     } else {
-                        return nxt;
+                        return next;
                     }
                 }
             }
@@ -82,22 +84,22 @@ private:
             }
         }
 
-        void UpdateCorners() {
-            if (root == nullptr) {
-                begin_iter = nullptr;
-                end_iter = nullptr;
+        void update_corners() {
+            if (root_ == nullptr) {
+                begin_iterator_ = nullptr;
+                end_iterator_ = nullptr;
             } else {
-                Node* v = root;
+                Node* v = root_;
                 while (v->right != nullptr) {
                     v = v->right;
                 }
-                end_iter = v;
+                end_iterator_ = v;
 
-                v = root;
+                v = root_;
                 while (v->left != nullptr) {
                     v = v->left;
                 }
-                begin_iter = v;
+                begin_iterator_ = v;
             }
         }
 
@@ -125,37 +127,43 @@ private:
             }
         }
 
-        static bool IsRed(Node* v) {
+        static bool is_red(Node* v) {
             return v != nullptr && v->red;
         }
-        static bool IsLeft(Node* v) {
+
+        static bool is_left(Node* v) {
             return v->parent->left == v;
         }
-        static Node* GetUncle(Node* v) {
-            if (IsLeft(v->parent)) {
+
+        static Node* get_uncle(Node* v) {
+            if (is_left(v->parent)) {
                 return v->parent->parent->right;
             } else {
                 return v->parent->parent->left;
             }
         }
-        static Node* GetDad(Node* v) {
+
+        static Node* get_dad(Node* v) {
             return v->parent;
         }
-        static Node* GetBrother(Node* v) {
-            if (IsLeft(v)) {
+
+        static Node* get_brother(Node* v) {
+            if (is_left(v)) {
                 return v->parent->right;
             } else {
                 return v->parent->left;
             }
         }
-        static Node* GetGrandad(Node* v) {
+
+        static Node* get_grandad(Node* v) {
             return v->parent->parent;
         }
-        static bool IsRoot(Node* v) {
-            return GetDad(v) == nullptr;
+
+        static bool is_root(Node* v) {
+            return get_dad(v) == nullptr;
         }
 
-        void RotateRight(Node* v) {
+        void rotate_right(Node* v) {
             Node* left_child = v->left;
             v->left = left_child->right;
             if (v->left != nullptr) {
@@ -163,18 +171,19 @@ private:
             }
             left_child->right = v;
             if (v->parent != nullptr) {
-                if (IsLeft(v)) {
+                if (is_left(v)) {
                     v->parent->left = left_child;
                 } else {
                     v->parent->right = left_child;
                 }
             } else {
-                root = left_child;
+                root_ = left_child;
             }
             left_child->parent = v->parent;
             v->parent = left_child;
         }
-        void RotateLeft(Node* v) {
+
+        void rotate_left(Node* v) {
             Node* right_child = v->right;
             v->right = right_child->left;
             if (v->right != nullptr) {
@@ -182,112 +191,112 @@ private:
             }
             right_child->left = v;
             if (v->parent != nullptr) {
-                if (IsLeft(v)) {
+                if (is_left(v)) {
                     v->parent->left = right_child;
                 } else {
                     v->parent->right = right_child;
                 }
             } else {
-                root = right_child;
+                root_ = right_child;
             }
             right_child->parent = v->parent;
             v->parent = right_child;
         }
 
-        void FixInsertation(Node* v) {
-            if (v->left != nullptr || v->right != nullptr || !IsRed(v)) {
+        void fix_insertation(Node* v) {
+            if (v->left != nullptr || v->right != nullptr || !is_red(v)) {
                 return;
             }
-            while (!IsRoot(v) && IsRed(GetDad(v))) {
-                if (IsLeft(v->parent)) {
-                    if (IsRed(GetUncle(v))) {
-                        GetUncle(v)->red = false;
-                        GetDad(v)->red = false;
-                        GetGrandad(v)->red = true;
-                        v = GetGrandad(v);
+            while (!is_root(v) && is_red(get_dad(v))) {
+                if (is_left(v->parent)) {
+                    if (is_red(get_uncle(v))) {
+                        get_uncle(v)->red = false;
+                        get_dad(v)->red = false;
+                        get_grandad(v)->red = true;
+                        v = get_grandad(v);
                     } else {
-                        if (!IsLeft(v)) {
+                        if (!is_left(v)) {
                             v = v->parent;
-                            RotateLeft(v);
+                            rotate_left(v);
                         }
-                        GetDad(v)->red = false;
-                        GetGrandad(v)->red = true;
-                        RotateRight(GetGrandad(v));
+                        get_dad(v)->red = false;
+                        get_grandad(v)->red = true;
+                        rotate_right(get_grandad(v));
                     }
                 } else {
-                    if (IsRed(GetUncle(v))) {
-                        GetUncle(v)->red = false;
-                        GetDad(v)->red = false;
-                        GetGrandad(v)->red = true;
-                        v = GetGrandad(v);
+                    if (is_red(get_uncle(v))) {
+                        get_uncle(v)->red = false;
+                        get_dad(v)->red = false;
+                        get_grandad(v)->red = true;
+                        v = get_grandad(v);
                     } else {
-                        if (IsLeft(v)) {
+                        if (is_left(v)) {
                             v = v->parent;
-                            RotateRight(v);
+                            rotate_right(v);
                         }
-                        GetDad(v)->red = false;
-                        GetGrandad(v)->red = true;
-                        RotateLeft(GetGrandad(v));
+                        get_dad(v)->red = false;
+                        get_grandad(v)->red = true;
+                        rotate_left(get_grandad(v));
                     }
                 }
             }
-            root->red = false;
+            root_->red = false;
         }
 
         void insert(const ValueType& x) {
-            if (root == nullptr) {
-                root = new Node(x);
+            if (root_ == nullptr) {
+                root_ = new Node(x);
                 ++size_;
-                UpdateCorners();
+                update_corners();
                 return;
             }
 
-            Node* current_node = insert(root, x);
-            FixInsertation(current_node);
-            UpdateCorners();
+            Node* current_node = insert(root_, x);
+            fix_insertation(current_node);
+            update_corners();
         }
 
-        void FixErasing(Node* v) {
-            while (!IsRoot(v) && !v->red) {
-                if (IsLeft(v)) {
-                    if (IsRed(GetBrother(v))) {
-                        GetBrother(v)->red = false;
-                        GetDad(v)->red = true;
-                        RotateLeft(GetDad(v));
+        void fix_erasing(Node* v) {
+            while (!is_root(v) && !v->red) {
+                if (is_left(v)) {
+                    if (is_red(get_brother(v))) {
+                        get_brother(v)->red = false;
+                        get_dad(v)->red = true;
+                        rotate_left(get_dad(v));
                     }
-                    if (!IsRed(GetBrother(v)->left) && !IsRed(GetBrother(v)->right)) {
-                        GetBrother(v)->red = true;
+                    if (!is_red(get_brother(v)->left) && !is_red(get_brother(v)->right)) {
+                        get_brother(v)->red = true;
                         v = v->parent;
                     } else {
-                        if (IsRed(GetBrother(v)->left)) {
-                            GetBrother(v)->left->red = false;
-                            GetBrother(v)->red = true;
-                            RotateRight(GetBrother(v));
+                        if (is_red(get_brother(v)->left)) {
+                            get_brother(v)->left->red = false;
+                            get_brother(v)->red = true;
+                            rotate_right(get_brother(v));
                         }
-                        std::swap(GetBrother(v)->red, GetDad(v)->red);
-                        GetBrother(v)->right->red = false;
-                        RotateLeft(GetDad(v));
-                        v = root;
+                        std::swap(get_brother(v)->red, get_dad(v)->red);
+                        get_brother(v)->right->red = false;
+                        rotate_left(get_dad(v));
+                        v = root_;
                     }
                 } else {
-                    if (IsRed(GetBrother(v))) {
-                        GetBrother(v)->red = false;
-                        GetDad(v)->red = true;
-                        RotateRight(GetDad(v));
+                    if (is_red(get_brother(v))) {
+                        get_brother(v)->red = false;
+                        get_dad(v)->red = true;
+                        rotate_right(get_dad(v));
                     }
-                    if (!IsRed(GetBrother(v)->right) && !IsRed(GetBrother(v)->left)) {
-                        GetBrother(v)->red = true;
+                    if (!is_red(get_brother(v)->right) && !is_red(get_brother(v)->left)) {
+                        get_brother(v)->red = true;
                         v = v->parent;
                     } else {
-                        if (IsRed(GetBrother(v)->right)) {
-                            GetBrother(v)->right->red = false;
-                            GetBrother(v)->red = true;
-                            RotateLeft(GetBrother(v));
+                        if (is_red(get_brother(v)->right)) {
+                            get_brother(v)->right->red = false;
+                            get_brother(v)->red = true;
+                            rotate_left(get_brother(v));
                         }
-                        std::swap(GetBrother(v)->red, GetDad(v)->red);
-                        GetBrother(v)->left->red = false;
-                        RotateRight(GetDad(v));
-                        v = root;
+                        std::swap(get_brother(v)->red, get_dad(v)->red);
+                        get_brother(v)->left->red = false;
+                        rotate_right(get_dad(v));
+                        v = root_;
                     }
                 }
             }
@@ -295,7 +304,7 @@ private:
         }
 
         void erase(const ValueType& x) {
-            Node* vert = lower_bound(root, x);
+            Node* vert = lower_bound(root_, x);
             if (vert == nullptr || !(!(vert->key < x) && !(x < vert->key))) {
                 return;
             }
@@ -307,71 +316,71 @@ private:
             }
             if (vert->left == nullptr && vert->right == nullptr) {
                 if (vert->parent == nullptr) {
-                    root = nullptr;
+                    root_ = nullptr;
                     delete vert;
                 } else {
-                    if (!IsRed(vert)) {
-                        FixErasing(vert);
+                    if (!is_red(vert)) {
+                        fix_erasing(vert);
                     }
-                    if (IsLeft(vert)) {
+                    if (is_left(vert)) {
                         vert->parent->left = nullptr;
                     } else {
                         vert->parent->right = nullptr;
                     }
                     delete vert;
                 }
-                UpdateCorners();
+                update_corners();
                 return;
             }
-            if (IsRed(vert)) {
+            if (is_red(vert)) {
                 if (vert->right != nullptr) {
                     vert->left = vert->right;
                 }
-                if (IsLeft(vert)) {
-                    GetDad(vert)->left = vert->left;
+                if (is_left(vert)) {
+                    get_dad(vert)->left = vert->left;
                 } else {
-                    GetDad(vert)->right = vert->left;
+                    get_dad(vert)->right = vert->left;
                 }
-                vert->left->parent = GetDad(vert);
+                vert->left->parent = get_dad(vert);
                 delete vert;
-                UpdateCorners();
+                update_corners();
                 return;
-            } else if (IsRoot(vert)) {
+            } else if (is_root(vert)) {
                 if (vert->left == nullptr) {
-                    root = vert->right;
+                    root_ = vert->right;
                 } else {
-                    root = vert->left;
+                    root_ = vert->left;
                 }
-                root->red = false;
-                root->parent = nullptr;
+                root_->red = false;
+                root_->parent = nullptr;
                 delete vert;
-                UpdateCorners();
+                update_corners();
                 return;
             } else {
                 if (vert->right != nullptr) {
                     vert->left = vert->right;
                 }
-                if (IsLeft(vert)) {
-                    GetDad(vert)->left = vert->left;
+                if (is_left(vert)) {
+                    get_dad(vert)->left = vert->left;
                 } else {
-                    GetDad(vert)->right = vert->left;
+                    get_dad(vert)->right = vert->left;
                 }
-                vert->left->parent = GetDad(vert);
+                vert->left->parent = get_dad(vert);
                 Node* to_delete = vert;
                 vert = vert->left;
                 delete to_delete;
             }
-            FixErasing(vert);
-            UpdateCorners();
+            fix_erasing(vert);
+            update_corners();
         }
     };
 
-    void DfsDestruct(typename RBTree::Node* it) {
+    void dfs_destruct(typename RBTree::Node* it) {
         if (it == nullptr) {
             return;
         }
-        DfsDestruct(it->left);
-        DfsDestruct(it->right);
+        dfs_destruct(it->left);
+        dfs_destruct(it->right);
         delete it;
     }
 
@@ -392,31 +401,31 @@ public:
         }
     }
 
-    Set(const Set& oth) {
-        for (const auto& x : oth) {
+    Set(const Set& other) {
+        for (const auto& x : other) {
             tree_.insert(x);
         }
     }
 
-    Set& operator=(const Set& oth) {
-        if (oth.tree_.root == tree_.root) {
+    Set& operator=(const Set& other) {
+        if (other.tree_.root_ == tree_.root_) {
             return *this;
         }
 
-        DfsDestruct(tree_.root);
+        dfs_destruct(tree_.root_);
         tree_.size_ = 0;
-        tree_.root = nullptr;
-        tree_.end_iter = nullptr;
-        tree_.begin_iter = nullptr;
+        tree_.root_ = nullptr;
+        tree_.end_iterator_ = nullptr;
+        tree_.begin_iterator_ = nullptr;
 
-        for (const auto& x : oth) {
+        for (const auto& x : other) {
             tree_.insert(x);
         }
         return *this;
     }
 
     ~Set() {
-        DfsDestruct(tree_.root);
+        dfs_destruct(tree_.root_);
     }
 
     size_t size() const {
@@ -440,36 +449,38 @@ public:
         using TreeNode = const typename RBTree::Node*;
 
         iterator() = default;
+
         explicit iterator(TreeNode p, bool) : node_(p), is_end_(true) {
         }
+
         explicit iterator(TreeNode p) : node_(p), is_end_(false) {
         }
+
         iterator(const iterator& other) : node_(other.node_), is_end_(other.is_end_) {
         }
 
         iterator& operator++() {
-            iterator nxt = NextNode(*this);
-            *this = nxt;
+            iterator next = next_node(*this);
+            *this = next;
             return *this;
         }
 
-
         iterator operator++(int) {
-            iterator nxt = NextNode(*this);
+            iterator next = next_node(*this);
             auto to_return = *this;
-            *this = nxt;
+            *this = next;
             return to_return;
         }
         iterator& operator--() {
-            iterator nxt = PrevNode(*this);
-            *this = nxt;
+            iterator next = previous_node(*this);
+            *this = next;
             return *this;
         }
 
         iterator operator--(int) {
-            iterator nxt = PrevNode(*this);
+            iterator next = previous_node(*this);
             auto to_return = *this;
-            *this = nxt;
+            *this = next;
             return to_return;
         }
 
@@ -498,7 +509,7 @@ public:
         TreeNode node_ = nullptr;
         bool is_end_ = false;
 
-        iterator NextNode(iterator p) {
+        iterator next_node(iterator p) {
             if (p.node_->right == nullptr) {
                 TreeNode x = p.node_;
                 while (x->parent != nullptr) {
@@ -518,7 +529,7 @@ public:
             }
         }
 
-        iterator PrevNode(iterator p) {
+        iterator previous_node(iterator p) {
             if (p.is_end_) {
                 p.is_end_ = false;
                 return p;
@@ -544,26 +555,26 @@ public:
     };
 
     iterator begin() const {
-        return iterator(tree_.begin_iter);
+        return iterator(tree_.begin_iterator_);
     }
 
     iterator end() const {
-        return iterator(tree_.end_iter, true);
+        return iterator(tree_.end_iterator_, true);
     }
 
     iterator lower_bound(const ValueType& key) const {
         if (empty()) {
             return end();
         }
-        if (tree_.end_iter->key < key) {
+        if (tree_.end_iterator_->key < key) {
             return end();
         } else {
-            return iterator(tree_.lower_bound(tree_.root, key));
+            return iterator(tree_.lower_bound(tree_.root_, key));
         }
     }
 
     iterator find(const ValueType& key) const {
-        iterator it(tree_.lower_bound(tree_.root, key));
+        iterator it(tree_.lower_bound(tree_.root_, key));
         if (it == end()) {
             return end();
         }
